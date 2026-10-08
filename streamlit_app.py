@@ -39,6 +39,21 @@ def save_uploaded_file(uploaded_file, suffix_hint: str) -> Path:
     return Path(temp.name)
 
 
+def show_saved_output_pngs(output_dir: Path) -> None:
+    st.subheader("Saved Output PNG Files")
+
+    png_files = sorted(output_dir.glob("*.png"))
+    if not png_files:
+        st.write("Run segmentation to generate output PNG files.")
+        return
+
+    for row_start in range(0, len(png_files), 3):
+        cols = st.columns(3)
+        for col, png_file in zip(cols, png_files[row_start : row_start + 3]):
+            with col:
+                st.image(str(png_file), caption=png_file.name, use_container_width=True)
+
+
 st.set_page_config(
     page_title="CSc 8830 Human Boundary Extraction",
     layout="wide",
@@ -63,6 +78,8 @@ st.info(
     "and GrabCut only. SAM2 is used only as an external reference mask for comparison."
 )
 
+output_dir = ROOT / "outputs" / "streamlit_results"
+
 if run_button:
     if image_file is None:
         st.error("Please upload an input image first.")
@@ -70,7 +87,6 @@ if run_button:
         with st.spinner("Running OpenCV segmentation..."):
             input_path = save_uploaded_file(image_file, ".png")
             sam2_path = save_uploaded_file(sam2_file, ".png") if sam2_file is not None else None
-            output_dir = ROOT / "outputs" / "streamlit_results"
             result = segment_and_save(input_path, mode, output_dir, sam2_path)
 
         col1, col2 = st.columns(2)
@@ -101,3 +117,6 @@ if run_button:
             st.write("No SAM2 mask uploaded. Upload a binary SAM2 mask to calculate IoU and Dice.")
 else:
     st.write("Upload an image in the sidebar, choose RGB or thermal, then run segmentation.")
+
+st.divider()
+show_saved_output_pngs(output_dir)
